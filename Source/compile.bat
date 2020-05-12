@@ -1,0 +1,1 @@
+gcc Hash_optimization.c Hash_Table.c Hash_Table.h List.c List.h -o ..\Hash_optimization.exe

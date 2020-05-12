@@ -24,7 +24,7 @@ Earch row represents the function type and earch collumns show the list sizes. T
 
 After we got all data we can analyse our functions. There are graphs of them:
 
-<img src="images/Graphs.png" width="720" alt="Graphs" />
+<img src="Images/Graphs.png" width="720" alt="Graphs" />
 
 As we can see, the most uniform functions are "XOR and Shift" and "CRC32". The worst funtion is of course the constant as it has the most amount of collisions (the total number of words).
 
@@ -42,10 +42,10 @@ At the end of the program we will just print these times. For more accurate resu
 
 After running our program we got the folowing times:
 
-<img src="images/UnoptimizedTimes.png" width="480" alt="Unoptimized times" />  
+<img src="Images/UnoptimizedTimes.png" width="480" alt="Unoptimized times" />  
 
 
 Now let's try to compile with the highest optimize option of GCC - "O3"!
 The results are:
 
-<img src="images/O3Times.png" width="480" alt="O3 times" />
+<img src="Images/O3Times.png" width="480" alt="O3 times" />

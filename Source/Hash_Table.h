@@ -1,7 +1,7 @@
 #pragma once
 #include "List.h"
 
-#define MAX_HASH 1500
+#define MAX_HASH 9973
 
 
 typedef struct String HashTable_value_t;

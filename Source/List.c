@@ -25,16 +25,12 @@ void List_PushBack(struct List* list, List_value_t val) {
 
 	if (list->size == 0) {
 		list->head = newNode;
+		list->tail = newNode;
 		++list->size;
 		return;
 	}
 
-	struct List_node* curNode = list->head;
-	for (int i = 0; i < list->size - 1; ++i) {
-		assert(curNode != NULL);
-
-		curNode = curNode->nextNode;
-	}
-	curNode->nextNode = newNode;
+	list->tail->nextNode = newNode;
+	list->tail = newNode;
 	++list->size;
 }

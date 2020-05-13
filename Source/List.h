@@ -20,6 +20,7 @@ struct List_node {
 
 struct List {
 	struct List_node* head;
+	struct List_node* tail;
 	int size;
 };
 

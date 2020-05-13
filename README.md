@@ -49,3 +49,5 @@ Now let's try to compile with the highest optimize option of GCC - "O3"!
 The results are:
 
 ![O3 times](./Images/O3Times.png)
+
+Much better! But let's try to use assembler for even stronger acceleration!

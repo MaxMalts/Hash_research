@@ -111,7 +111,7 @@ struct HashTables {
 struct HashTables ReadWords(FILE* fin) {
 	assert(fin != NULL);
 
-	const char nonWordChars[] = ".,-:;!?()\"' \r\n";
+	const char letters[] = "AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz";
 
 	struct HashTable constHash = HashTable_Constructor();
 	struct HashTable wordLenHash = HashTable_Constructor();
@@ -122,11 +122,10 @@ struct HashTables ReadWords(FILE* fin) {
 
 
 	struct String curStr = {""};
-	char specStr[sizeof(nonWordChars) + 3] = "";
-	sprintf(specStr, "[^%s]", nonWordChars);
+	char specStr[sizeof(letters) + 3] = "";
+	sprintf(specStr, "[%s]", letters);
 
 	int charsRead = FGetsNChars(fin, curStr.string, MAX_WORD_LEN, specStr);
-	int i = 0;
 	while (charsRead != EOF) {
 
 		HashTable_AddElem(&constHash, curStr, ConstHash);
@@ -136,14 +135,13 @@ struct HashTables ReadWords(FILE* fin) {
 		HashTable_AddElem(&cycleShiftHash, curStr, CycleShiftHash);
 		HashTable_AddElem(&crc32Hash, curStr, Crc32Hash);
 
-		while (strchr(nonWordChars, fgetc(fin))) {
+		while (!strchr(letters, fgetc(fin)) && !feof(fin)) {
 			continue;
 		}
 		if (!feof(fin)) {
 			fseek(fin, -1, SEEK_CUR);
 		}
 		charsRead = FGetsNChars(fin, curStr.string, MAX_WORD_LEN, specStr);
-		++i;
 	}
 
 	struct HashTables res = {constHash, wordLenHash, wordSumHash, wordDivLenHash, cycleShiftHash, crc32Hash};

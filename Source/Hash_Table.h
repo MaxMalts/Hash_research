@@ -1,4 +1,3 @@
-#pragma once
 #include "List.h"
 
 #define MAX_HASH 9973
@@ -18,3 +17,6 @@ void HashTable_AddElem(struct HashTable* hashTable, HashTable_value_t value, uns
 
 
 int HashTable_IthListSize(struct HashTable* hashTable, int i);
+
+
+int HashTable_ElemExists(struct HashTable* hashTable, HashTable_value_t value, unsigned int (*HashFunc)(HashTable_value_t));

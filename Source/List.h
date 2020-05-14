@@ -1,13 +1,13 @@
-#pragma once
+//#define ACCELERATE
 
 
-#define MAX_WORD_LEN 100
+#define MAX_WORD_LEN 16
 
 struct String {
 	char string[MAX_WORD_LEN + 1];
 };
 
-void StringCpy(struct String dest, struct String src);
+void StringCpy(struct String* dest, struct String* src);
 
 
 typedef struct String List_value_t;
@@ -29,3 +29,6 @@ struct List List_Contructor();
 
 
 void List_PushBack(struct List* list, List_value_t val);
+
+
+int List_ElemExists(struct List* list, List_value_t val);

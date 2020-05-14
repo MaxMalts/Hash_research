@@ -6,29 +6,36 @@
 #include "Hash_Table.h"
 
 
-#pragma GCC optimize("O3")
-
-//#define ACCELERATE
-
 #ifdef ACCELERATE
 #define strlen strlen_fast
+#pragma	intrinsic(strlen_fast)
+#pragma intrinsic(CycleShiftHash)
+#pragma intrinsic(Crc32Hash)
 #endif
+
+
+
+unsigned int ConstHash(struct String value) {
+	assert(value.string != NULL);
+
+	return 1;
+}
 
 
 size_t strlen_fast(char* string) {
 	assert(string != NULL);
 
 	size_t res = 0;
-	__asm__(".intel_syntax noprefix    \n\t"
-			"mov rax, %1                         \n\t"
-			"dec rax                             \n\t"
-			".strlen_loop:                       \n\t"
-				"inc rax                         \n\t"
-				"cmp byte ptr [rax], 0           \n\t"
-				"jne .strlen_loop                \n\t"
-			"mov %0, rax                         \n\t"
-			"sub %0, %1                          \n\t"
-		    ".att_syntax                         \n\t"
+	__asm__ volatile (".intel_syntax noprefix    \n"
+			"mov rax, %1                         \n"
+			"dec rax                             \n"
+			".strlen_loop:                       \n"
+				"inc rax                         \n"
+				"cmp byte ptr [rax], 0           \n"
+				"jne .strlen_loop                \n"
+			"mov %0, rax                         \n"
+			"sub %0, %1                          \n"
+		    ".att_syntax                         \n"
 		    : "=r" (res)
 		    : "b" (string)
 		    : "rax");
@@ -46,18 +53,18 @@ unsigned int CycleShiftHash(struct String value) {
 #ifdef ACCELERATE
 	char* curCh = value.string;
 
-	__asm__(".intel_syntax noprefix    \n"
-			"xor %0, %0                \n"
-			"xor ebx, ebx              \n"
+	__asm__ volatile (".intel_syntax noprefix    \n"
+			"xor %0, %0                 \n"
+			"xor ebx, ebx               \n"
 			".cycle_loop:               \n"
-				"mov bl, [%2]          \n"
-				"xor %0, ebx           \n"
-				"rol %0, 1             \n"
-				"inc %2                \n"
-				"dec %1                \n"
-				"cmp %1, 0             \n"
+				"mov bl, [%2]           \n"
+				"xor %0, ebx            \n"
+				"rol %0, 1              \n"
+				"inc %2                 \n"
+				"dec %1                 \n"
+				"cmp %1, 0              \n"
 				"jne .cycle_loop        \n"
-			".att_syntax               \n"
+			".att_syntax                \n"
 			: "=a" (res)
 			: "c" (len), "r" (curCh)
 			: "ebx", "edx");
@@ -158,7 +165,7 @@ unsigned int Crc32Hash(struct String value) {
 #ifdef ACCELERATE
 	char* curCh = value.string;
 
-	__asm__(".intel_syntax noprefix          \n"
+	__asm__ volatile (".intel_syntax noprefix          \n"
 			"mov %0, 0xFFFFFFFF              \n"
 			".crc_loop:                      \n"
 				"xor rdx, rdx                \n" // Current index
@@ -184,14 +191,16 @@ unsigned int Crc32Hash(struct String value) {
 		    : "b" (crc_table), "S" (curCh)
 		    : "rdx", "rcx", "rdi");
 #else
-	res = 0xFFFFFFFF;
+	const unsigned int maxInt = 0xFFFFFFFF;
+	res = maxInt;
 
 	int len = strlen(value.string);
 	unsigned char* curCh = value.string;
 	while (len--) {
-		res = crc_table[(res ^ *curCh++) & 0xFF] ^ (res >> 8);
+		unsigned int curInd = (res ^ *curCh++) & 0xFF;
+		res = crc_table[curInd] ^ (res >> 8);
 	}
-	res ^= 0xFFFFFFFF;
+	res = res ^ maxInt;
 #endif
 
 	return res % (MAX_HASH + 1);
@@ -229,8 +238,7 @@ void CalcHashs(FILE* fin) {
 	for (int i = 0; i < NFuncs; ++i) {
 
 		clock_t tempClock = clock();
-		for (int j = 0; j < 10; ++j) {
-			fseek(fin, 0, SEEK_SET);
+		for (int j = 0; j < 1; ++j) {
 			int charsRead = FGetsNChars(fin, curStr.string, MAX_WORD_LEN, specStr);
 			while (charsRead != EOF) {
 
@@ -241,10 +249,10 @@ void CalcHashs(FILE* fin) {
 					lastCh = fgetc(fin);
 					continue;
 				}
-
 				curStr.string[0] = lastCh;
 				charsRead = FGetsNChars(fin, curStr.string + 1, MAX_WORD_LEN - 1, specStr);
 			}
+			fseek(fin, 0, SEEK_SET);
 		}
 		times[i] = (float)(clock() - tempClock) / CLOCKS_PER_SEC;
 	}
@@ -254,15 +262,67 @@ void CalcHashs(FILE* fin) {
 }
 
 
+void FindWords(FILE* textF, FILE* wordsF) {
+	assert(textF != NULL);
+
+	const char letters[] = "AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz";
+
+	struct HashTable constHash = HashTable_Constructor();
+
+	struct String curStr = {""};
+	char specStr[sizeof(letters) + 3] = "";
+	sprintf(specStr, "[%s]", letters);
+
+	int charsRead = FGetsNChars(textF, curStr.string, MAX_WORD_LEN, specStr);
+	while (charsRead != EOF) {
+
+		if (!HashTable_ElemExists(&constHash, curStr, ConstHash)) {
+			HashTable_AddElem(&constHash, curStr, ConstHash);
+		}
+
+		memset(curStr.string, 0, MAX_WORD_LEN + 1);
+		char lastCh = fgetc(textF);
+		while (!strchr(letters, lastCh) && !(lastCh == EOF)) {
+			lastCh = fgetc(textF);
+			continue;
+		}
+		curStr.string[0] = lastCh;
+		charsRead = FGetsNChars(textF, curStr.string + 1, MAX_WORD_LEN - 1, specStr);
+	}
+
+	clock_t tempClock = clock();
+	memset(curStr.string, 0, MAX_WORD_LEN + 1);
+	charsRead = FGetsNChars(wordsF, curStr.string, MAX_WORD_LEN, specStr);
+	while (charsRead != EOF) {
+
+		HashTable_ElemExists(&constHash, curStr, ConstHash);
+
+		memset(curStr.string, 0, MAX_WORD_LEN + 1);
+		char lastCh = fgetc(wordsF);
+		while (!strchr(letters, lastCh) && !(lastCh == EOF)) {
+			lastCh = fgetc(wordsF);
+			continue;
+		}
+		curStr.string[0] = lastCh;
+		charsRead = FGetsNChars(wordsF, curStr.string + 1, MAX_WORD_LEN - 1, specStr);
+	}
+	float searchTime = (float)(clock() - tempClock) / CLOCKS_PER_SEC;
+	printf("search time: %f\n", searchTime);
+}
+
+
 int main() {
 	const char finName[] = "Data/text.txt";
+	const char wordsFName[] = "Data/words.txt";
 
 	FILE* fin = fopen(finName, "r");
 	assert(fin != NULL);
+	FILE* wordsF = fopen(wordsFName, "r");
+	assert(wordsF != NULL);
 
 	CalcHashs(fin);
+	FindWords(fin, wordsF);
 	fclose(fin);
 
-	printf("total: %fs\n", (float)clock() / CLOCKS_PER_SEC);
 	return 0;
 }

@@ -18,6 +18,8 @@ struct HashTable HashTable_Constructor() {
 
 
 void HashTable_AddElem(struct HashTable* hashTable, HashTable_value_t value, unsigned int (*HashFunc)(HashTable_value_t)) {
+	assert(hashTable != NULL);
+
 	unsigned int hash = HashFunc(value);
 
 	List_PushBack(hashTable->hashList[hash], value);
@@ -28,4 +30,13 @@ int HashTable_IthListSize(struct HashTable* hashTable, int i) {
 	assert(hashTable != NULL);
 
 	return hashTable->hashList[i]->size;
+}
+
+
+int HashTable_ElemExists(struct HashTable* hashTable, HashTable_value_t value, unsigned int (*HashFunc)(HashTable_value_t)) {
+	assert(hashTable != NULL);
+
+	unsigned int hash = HashFunc(value);
+
+	return List_ElemExists(hashTable->hashList[hash], value);
 }

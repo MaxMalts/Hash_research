@@ -126,22 +126,26 @@ struct HashTables ReadWords(FILE* fin) {
 	sprintf(specStr, "[%s]", letters);
 
 	int charsRead = FGetsNChars(fin, curStr.string, MAX_WORD_LEN, specStr);
+	int i = 0;
 	while (charsRead != EOF) {
 
-		HashTable_AddElem(&constHash, curStr, ConstHash);
-		HashTable_AddElem(&wordLenHash, curStr, WordLenHash);
-		HashTable_AddElem(&wordSumHash, curStr, WordSumHash);
-		HashTable_AddElem(&wordDivLenHash, curStr, WordDivLenHash);
-		HashTable_AddElem(&cycleShiftHash, curStr, CycleShiftHash);
-		HashTable_AddElem(&crc32Hash, curStr, Crc32Hash);
+		if (!HashTable_ElemExists(&constHash, curStr, ConstHash)) {
+			HashTable_AddElem(&constHash, curStr, ConstHash);
+			HashTable_AddElem(&wordLenHash, curStr, WordLenHash);
+			HashTable_AddElem(&wordSumHash, curStr, WordSumHash);
+			HashTable_AddElem(&wordDivLenHash, curStr, WordDivLenHash);
+			HashTable_AddElem(&cycleShiftHash, curStr, CycleShiftHash);
+			HashTable_AddElem(&crc32Hash, curStr, Crc32Hash);
+		}
 
-		while (!strchr(letters, fgetc(fin)) && !feof(fin)) {
+		memset(curStr.string, 0, MAX_WORD_LEN + 1);
+		char lastCh = fgetc(fin);
+		while (!strchr(letters, lastCh) && !(lastCh == EOF)) {
+			lastCh = fgetc(fin);
 			continue;
 		}
-		if (!feof(fin)) {
-			fseek(fin, -1, SEEK_CUR);
-		}
-		charsRead = FGetsNChars(fin, curStr.string, MAX_WORD_LEN, specStr);
+		curStr.string[0] = lastCh;
+		charsRead = FGetsNChars(fin, curStr.string + 1, MAX_WORD_LEN - 1, specStr);
 	}
 
 	struct HashTables res = {constHash, wordLenHash, wordSumHash, wordDivLenHash, cycleShiftHash, crc32Hash};

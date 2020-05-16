@@ -1,4 +1,4 @@
-//#define ACCELERATE
+#define ACCELERATE
 
 
 #define MAX_WORD_LEN 16

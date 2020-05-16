@@ -71,15 +71,7 @@ int Strcmp(char* str1, char* str2) {
 	//#define strcmp strcmp_fast
 	return res;
 #else
-	while (*str1 != '\0' || *str2 != '\0') {
-		if (*str1 != *str2)
-			return *str1 - *str2;
-
-		++str1;
-		++str2;
-	}
-
-	return *(str1 - 1) - *(str2 - 1);
+	return strcmp(str1, str2);
 #endif
 }
 

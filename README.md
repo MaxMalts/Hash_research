@@ -120,7 +120,7 @@ As we can see, the most uniform functions are "XOR and Shift" and "CRC32". The w
 
 ## Optimisation
 
-Let's determine how long does it take to calculate "Xor and Shift" and "CRC32"! First let's modify out program so that it doesn't generate hash tables but just calculates hash amounts. Now we have to get the times every function runs. To do this we will just call our functions for 50 times in a loop and calculate the time it took to run the loop for each function: The code is:
+Let's determine how long does it take to calculate "Xor and Shift" and "CRC32"! First let's modify out program so that it doesn't generate hash tables but just calculates hash amounts. Now we have to get the times every function runs. To do this we will just call our functions 20 times in a loop and calculate the time it took to run the loop for each function: The code is:
 ```
 int tempClocks = clock();
 ...<function loop>...
@@ -141,4 +141,129 @@ The results are:
 
 ![O3 times](./Images/O3Times.png)
 
-Much better! But let's try to use assembler to try to get as close as possible to these results.
+Much better! But let's try to use assembly to try to get as close as possible to these results.
+
+We will replace the folowing functions with assembly code:
+
+* CycleShiftHash:
+```
+unsigned int CycleShiftHash(struct String value) {
+	unsigned int len = strlen(value.string);
+	char* curCh = value.string;
+	
+	unsigned int res = 0;
+
+	__asm__ volatile (".intel_syntax noprefix    \n"
+					  "xor %0, %0                 \n"
+					  "xor ebx, ebx               \n"
+					  ".cycle_loop:               \n"
+					  "mov bl, [%2]           \n"
+					  "xor %0, ebx            \n"
+					  "rol %0, 1              \n"
+					  "inc %2                 \n"
+					  "dec %1                 \n"
+					  "cmp %1, 0              \n"
+					  "jne .cycle_loop        \n"
+					  ".att_syntax                \n"
+					  : "=a" (res)
+					  : "c" (len), "r" (curCh)
+					  : "ebx", "edx");
+
+	return res % (MAX_HASH + 1);
+}
+```
+
+* Crc32Hash:
+```
+unsigned int Crc32Hash(struct String value) {
+	char* curCh = value.string;
+
+	__asm__ volatile (".intel_syntax noprefix      \n"
+					  "mov %0, 0xFFFFFFFF          \n"
+					  ".crc_loop:                  \n"
+					  "xor rdx, rdx                \n" // Current index
+					  "mov dl, [%2]                \n"
+					  "inc %2                      \n"
+					  "xor edx, %0                 \n"
+					  "and edx, 0xFF               \n" // Got current index
+
+					  "mov rdi, %1                 \n"
+					  "shl rdx, 2                  \n"
+					  "add rdi, rdx                \n"
+					  "mov ecx, [rdi]              \n"
+
+					  "shr %0, 8                   \n"
+					  "xor %0, ecx                 \n" // Got current res
+
+					  "cmp byte ptr [%2], 0        \n"
+					  "jne .crc_loop               \n"
+
+					  "xor %0, 0xFFFFFFFF          \n"
+					  ".att_syntax                 \n"
+					  : "=a" (res)
+					  : "b" (crc_table), "S" (curCh)
+					  : "rdx", "rcx", "rdi");
+
+	return res % (MAX_HASH + 1);
+}
+```
+
+* strcmp:
+```
+int Strcmp(char* str1, char* str2) {
+	int res = 0;
+
+	__asm__ volatile (".intel_syntax noprefix       \n"
+					  "xor rax, rax                 \n"
+					  ".cmp_loop:                   \n"
+					  "cmpsb                        \n"
+					  "jne .end                     \n"
+					  "dec rsi                      \n"
+					  "lodsb                        \n"
+					  "cmp al, 0                    \n"
+					  "jne .cmp_loop                \n"
+
+					  ".end:                        \n"
+					  "xor ebx, ebx                 \n"
+					  "mov bl, [rsi - 1]            \n"
+					  "sub bl, [rdi - 1]            \n"
+
+					  ".att_syntax                  \n"
+					  : "=b"(res)
+					  : "S"(str1), "D" (str2)
+					  : "rax");
+	return res;
+}
+```
+
+* strlen (because some hash functions use it):
+```
+size_t strlen_fast(char* string) {
+	size_t res = 0;
+	
+	__asm__ volatile (".intel_syntax noprefix    \n"
+					  "mov rax, %1               \n"
+					  "dec rax                   \n"
+					  ".strlen_loop:             \n"
+					  "inc rax                   \n"
+					  "cmp byte ptr [rax], 0     \n"
+					  "jne .strlen_loop          \n"
+					  "mov %0, rax               \n"
+					  "sub %0, %1                \n"
+					  ".att_syntax               \n"
+					  : "=r" (res)
+					  : "b" (string)
+					  : "rax");
+
+	return res;
+}	
+```
+
+Let's measure the times with our inline assembly:
+![Assembly times](./Images/AsmTimes.png)
+
+
+## Results
+At the end we got the folowing times:
+![Results](./Images/Results.png)
+As we can see, we got pretty near to O3 times and even got ahead of O3 in CRC32!

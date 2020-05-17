@@ -163,9 +163,9 @@ unsigned int Crc32Hash(struct String value) {
 #ifdef ACCELERATE
 	char* curCh = value.string;
 
-	__asm__ volatile (".intel_syntax noprefix          \n"
-					  "mov %0, 0xFFFFFFFF              \n"
-					  ".crc_loop:                      \n"
+	__asm__ volatile (".intel_syntax noprefix      \n"
+					  "mov %0, 0xFFFFFFFF          \n"
+					  ".crc_loop:                  \n"
 					  "xor rdx, rdx                \n" // Current index
 					  "mov dl, [%2]                \n"
 					  "inc %2                      \n"
@@ -183,8 +183,8 @@ unsigned int Crc32Hash(struct String value) {
 					  "cmp byte ptr [%2], 0        \n"
 					  "jne .crc_loop               \n"
 
-					  "xor %0, 0xFFFFFFFF              \n"
-					  ".att_syntax                     \n"
+					  "xor %0, 0xFFFFFFFF          \n"
+					  ".att_syntax                 \n"
 					  : "=a" (res)
 					  : "b" (crc_table), "S" (curCh)
 					  : "rdx", "rcx", "rdi");

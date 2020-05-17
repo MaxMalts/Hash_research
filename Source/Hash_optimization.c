@@ -27,7 +27,7 @@ void CalcHashs(FILE* fin) {
 	for (int i = 0; i < NFuncs; ++i) {
 
 		clock_t tempClock = clock();
-		for (int j = 0; j < 1; ++j) {
+		for (int j = 0; j < 20; ++j) {
 			int charsRead = FGetsNChars(fin, curStr.string, MAX_WORD_LEN, specStr);
 			while (charsRead != EOF) {
 
@@ -109,9 +109,13 @@ int main() {
 	FILE* wordsF = fopen(wordsFName, "r");
 	assert(wordsF != NULL);
 
+	clock_t tempClock = clock();
 	CalcHashs(fin);
 	FindWords(fin, wordsF);
 	fclose(fin);
+
+	float totalTime = (float)(clock() - tempClock) / CLOCKS_PER_SEC;
+	printf("total time: %f\n", totalTime);
 
 	return 0;
 }

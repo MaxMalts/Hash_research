@@ -10,7 +10,7 @@ int Strcmp(char* str1, char* str2) {
 	assert(str1 != NULL);
 	assert(str2 != NULL);
 
-#ifndef ACCELERATE
+#ifdef ACCELERATE
 
 
 	int res = 0;
@@ -64,11 +64,6 @@ int Strcmp(char* str1, char* str2) {
 					  : "=b"(res)
 					  : "S"(str1), "D" (str2)
 					  : "rax");
-	//#undef strcmp
-	//	if (res == 0 && strcmp(bstr1, bstr2) != 0 || res != 0 && strcmp(bstr1, bstr2) == 0) {
-	//		printf("there %d", res);
-	//	}
-	//#define strcmp strcmp_fast
 	return res;
 #else
 	return strcmp(str1, str2);

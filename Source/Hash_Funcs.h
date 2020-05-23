@@ -1,13 +1,5 @@
+#include <nmmintrin.h>
 #include "Addit_Funcs.h"
-
-//#define ACCELERATE
-
-#ifdef ACCELERATE
-#define strlen strlen_fast
-#pragma	intrinsic(strlen_fast)
-#pragma intrinsic(CycleShiftHash)
-#pragma intrinsic(Crc32Hash)
-#endif
 
 
 
@@ -21,7 +13,7 @@ unsigned int ConstHash(struct String value) {
 unsigned int WordLenHash(struct String value) {
 	assert(value.string != NULL);
 
-	return strlen(value.string) % (MAX_HASH + 1);
+	return Strlen(value.string) % (MAX_HASH + 1);
 }
 
 
@@ -29,7 +21,7 @@ unsigned int WordSumHash(struct String value) {
 	assert(value.string != NULL);
 
 	unsigned int res = 0;
-	for (int i = 0; i < strlen(value.string); ++i) {
+	for (int i = 0; i < Strlen(value.string); ++i) {
 		res += value.string[i];
 	}
 
@@ -40,7 +32,7 @@ unsigned int WordSumHash(struct String value) {
 unsigned int WordDivLenHash(struct String value) {
 	assert(value.string != NULL);
 
-	unsigned int len = strlen(value.string);
+	unsigned int len = Strlen(value.string);
 	unsigned int sum = 0;
 	for (int i = 0; i < len; ++i) {
 		sum += value.string[i];
@@ -53,7 +45,7 @@ unsigned int WordDivLenHash(struct String value) {
 unsigned int CycleShiftHash(struct String value) {
 	assert(value.string != NULL);
 
-	unsigned int len = strlen(value.string);
+	unsigned int len = Strlen(value.string);
 	unsigned int res = 0;
 
 #ifdef ACCELERATE
@@ -91,7 +83,7 @@ unsigned int CycleShiftHash(struct String value) {
 unsigned int Crc32Hash(struct String value) {
 	assert(value.string != NULL);
 
-	unsigned int crc_table[256] = {
+	unsigned int crcTable[256] = {
 	0x00000000, 0x77073096, 0xEE0E612C, 0x990951BA,
 	0x076DC419, 0x706AF48F, 0xE963A535, 0x9E6495A3,
 	0x0EDB8832, 0x79DCB8A4, 0xE0D5E91E, 0x97D2D988,
@@ -157,49 +149,31 @@ unsigned int Crc32Hash(struct String value) {
 	0xB3667A2E, 0xC4614AB8, 0x5D681B02, 0x2A6F2B94,
 	0xB40BBE37, 0xC30C8EA1, 0x5A05DF1B, 0x2D02EF8D
 	};
-	unsigned int res = 0;
 
+	const unsigned int maxInt = 0xFFFFFFFF;
+	unsigned int res = maxInt;
+	int len = Strlen(value.string);
+	unsigned char* curCh = value.string;
 
 #ifdef ACCELERATE
-	char* curCh = value.string;
-
-	__asm__ volatile (".intel_syntax noprefix      \n"
-					  "mov %0, 0xFFFFFFFF          \n"
-					  ".crc_loop:                  \n"
-					  "xor rdx, rdx                \n" // Current index
-					  "mov dl, [%2]                \n"
-					  "inc %2                      \n"
-					  "xor edx, %0                 \n"
-					  "and edx, 0xFF               \n" // Got current index
-
-					  "mov rdi, %1                 \n"
-					  "shl rdx, 2                  \n"
-					  "add rdi, rdx                \n"
-					  "mov ecx, [rdi]              \n"
-
-					  "shr %0, 8                   \n"
-					  "xor %0, ecx                 \n" // Got current res
-
-					  "cmp byte ptr [%2], 0        \n"
-					  "jne .crc_loop               \n"
-
-					  "xor %0, 0xFFFFFFFF          \n"
-					  ".att_syntax                 \n"
-					  : "=a" (res)
-					  : "b" (crc_table), "S" (curCh)
-					  : "rdx", "rcx", "rdi");
-#else
-	const unsigned int maxInt = 0xFFFFFFFF;
-	res = maxInt;
-
-	int len = strlen(value.string);
-	char* curCh = value.string;
-	while (len--) {
-		unsigned int curInd = (res ^ *curCh++) & 0xFF;
-		res = crc_table[curInd] ^ (res >> 8);
+	int curPos = 0;
+	while (curPos < len - 3) {
+		res = _mm_crc32_u32(res, *((unsigned int*)curCh));
+		curPos += 4;
+		curCh += 4;
 	}
-	res = res ^ maxInt;
+	while (curPos++ < len) {
+		res = _mm_crc32_u8(res, *curCh++);
+	}
+
+#else
+
+	for (int i = 0; i < len; ++i) {
+		unsigned int curInd = (res ^ *curCh++) & 0xFF;
+		res = crcTable[curInd] ^ (res >> 8);
+	}
 #endif
+	res ^= maxInt;
 
 	return res % (MAX_HASH + 1);
 }

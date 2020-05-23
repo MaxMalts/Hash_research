@@ -5,4 +5,4 @@ research: Hash_research.c Hash_Table.c List.c
 	
 
 optimization: Hash_optimization.c Hash_Table.c List.c
-	gcc Hash_optimization.c Hash_Table.c List.c -o ..\Hash_optimization.exe
+	gcc -O0 Hash_optimization.c Hash_Table.c List.c -o ..\Hash_optimization.exe

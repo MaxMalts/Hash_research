@@ -1,9 +1,13 @@
 #pragma once
 
-size_t strlen_fast(char* string) {
+#define ACCELERATE
+
+
+size_t Strlen(char* string) {
 	assert(string != NULL);
 
 	size_t res = 0;
+#ifdef ACCELERATE
 	__asm__ volatile (".intel_syntax noprefix    \n"
 					  "mov rax, %1               \n"
 					  "dec rax                   \n"
@@ -17,6 +21,9 @@ size_t strlen_fast(char* string) {
 					  : "=r" (res)
 					  : "b" (string)
 					  : "rax");
+#else
+	res = strlen(string);
+#endif
 
 	return res;
 }
